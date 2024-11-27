@@ -1,0 +1,64 @@
+function main() {
+  const SPREADSHEET_URL = 'SHEET_URL';
+  const SHEET_NAME = 'data';
+  
+  // Open the spreadsheet and get the sheet
+  const spreadsheet = SpreadsheetApp.openByUrl(SPREADSHEET_URL);
+  const sheet = spreadsheet.getSheetByName(SHEET_NAME);
+  
+  // Clear existing data
+  sheet.clear();
+  
+  // Write headers
+  sheet.getRange(1, 1, 1, 3).setValues([['Date', 'Conversion Rate', 'Notes']]);
+  
+  // Generate all dates between start and end
+  const startDate = new Date('2022-01-01');
+  const endDate = new Date('2024-12-31');
+  const allDates = [];
+  let currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    allDates.push(formatDate(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  // Create a map of dates to conversion rates
+  const conversionRates = new Map();
+  const query = `
+    SELECT 
+      segments.date,
+      metrics.conversions_from_interactions_rate
+    FROM customer
+    WHERE 
+      segments.date BETWEEN '2022-01-01' AND '2024-12-31'
+    ORDER BY segments.date`;
+    
+  const report = AdsApp.report(query);
+  const rows = report.rows();
+  
+  while (rows.hasNext()) {
+    const row = rows.next();
+    conversionRates.set(row['segments.date'], row['metrics.conversions_from_interactions_rate']);
+  }
+  
+  // Prepare data with all dates
+  const data = allDates.map(date => [
+    date,
+    conversionRates.get(date) || '0'
+  ]);
+  
+  // Write data to sheet
+  if (data.length > 0) {
+    sheet.getRange(2, 1, data.length, 2).setValues(data);
+    
+    // Add the holiday notes formula to column C
+    const formulaRange = sheet.getRange(2, 3, data.length, 1);
+    const formula = '=IFS(AND(MONTH(A2)=2,DAY(A2)=14),"❤️ Valentine\'s Day ❤️",AND(MONTH(A2)=2,DAY(A2)>=8,DAY(A2)<=14),"🎭 Carnival 🎭",AND(MONTH(A2)=3,DAY(A2)=8),"👩 International Women\'s Day 👩",AND(MONTH(A2)=3,DAY(A2)=17),"☘️ St. Patrick\'s Day ☘️",AND(MONTH(A2)=3,DAY(A2)>=31),"🎃 Halloween 🎃",AND(MONTH(A2)=11,DAY(A2)=11),"🛍️ Singles Day 🛍️",AND(MONTH(A2)=11,DAY(A2)>=22,DAY(A2)<=28),"🛍️ Black Week 🛍️",AND(MONTH(A2)=11,DAY(A2)=29),"🛍️ Black Friday 🛍️",AND(MONTH(A2)=12,DAY(A2)>=2,DAY(A2)<=8),"💻 Cyber Week 💻",AND(MONTH(A2)=12,DAY(A2)>=17,DAY(A2)<=23),"🎁 Pre-Christmas Week 🎁",AND(MONTH(A2)=12,DAY(A2)>=24,DAY(A2)<=26),"🎄 Christmas 🎄",AND(MONTH(A2)=12,DAY(A2)>=27,DAY(A2)<=31),"🎁 Post-Christmas Holiday 🎁",AND(MONTH(A2)=12,DAY(A2)=31),"🎆 New Year\'s Eve 🎆",TRUE,"")';
+    formulaRange.setFormula(formula);
+  }
+}
+
+function formatDate(date) {
+  return Utilities.formatDate(date, 'GMT', 'yyyy-MM-dd');
+}
