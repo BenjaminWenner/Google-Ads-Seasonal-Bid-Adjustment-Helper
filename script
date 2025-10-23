@@ -1,3 +1,12 @@
+/**
+ * Google Ads Conversion Rate Script
+ * 
+ * SETUP: Make a copy of this template spreadsheet:
+ * https://docs.google.com/spreadsheets/d/1beKnGw69IqwCwpzr5tbAj-Xfu7Cv1pbVx4U7kB1EUQA/copy
+ * 
+ * Then replace SHEET_URL below with your copied spreadsheet URL.
+ */
+
 function main() {
   const SPREADSHEET_URL = 'SHEET_URL';
   const SHEET_NAME = 'data';
